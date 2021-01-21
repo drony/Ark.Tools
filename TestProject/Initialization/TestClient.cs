@@ -13,15 +13,12 @@ using Microsoft.AspNetCore.Mvc;
 namespace TestProject
 {
 	[Binding]
-	public sealed class TestClient : IDisposable
+	public sealed class TestClient
 	{
 		internal IFlurlClient _client;
 
 		private readonly string _version;
-
-		private IFlurlResponse _backProperty;
-		private IFlurlResponse LastResponse { get => _backProperty;  set { _backProperty?.Dispose(); _backProperty = value; } }
-
+		private Task<HttpResponseMessage> _lastResponse;
 		private static MediaTypeHeaderValue _jsonMediaType = new MediaTypeHeaderValue("application/json");
 
 		public TestClient(FeatureContext fctx, ScenarioContext sctx, IFlurlClient client)
@@ -35,7 +32,7 @@ namespace TestProject
 
 		public HttpStatusCode GetLastStatusCode()
 		{
-			return (HttpStatusCode)LastResponse.StatusCode;
+			return _lastResponse.GetAwaiter().GetResult().StatusCode;
 		}
 
 		public void Get(string requestUri, IEntityWithETag e)
@@ -52,7 +49,9 @@ namespace TestProject
 			if (e != null)
 				req.Headers.Add("If-None-Match", e.ToString());
 
-			LastResponse = req.GetAsync().GetAwaiter().GetResult();
+			_lastResponse = req.GetAsync();
+
+			_lastResponse.GetAwaiter().GetResult();
 		}
 
 		public void Get(string[] requestUriParts, EntityTagHeaderValue e)
@@ -65,7 +64,9 @@ namespace TestProject
 			if (e != null)
 				req.Headers.Add("If-None-Match", e.ToString());
 
-			LastResponse = req.GetAsync().GetAwaiter().GetResult();
+			_lastResponse = req.GetAsync();
+
+			_lastResponse.GetAwaiter().GetResult();
 		}
 
 		public void Get(string[] requestUriParts, string etag = null)
@@ -84,7 +85,9 @@ namespace TestProject
 
 			var req = _client.Request(reqUriComposed);
 
-			LastResponse = req.DeleteAsync().GetAwaiter().GetResult();
+			_lastResponse = req.DeleteAsync();
+
+			_lastResponse.GetAwaiter().GetResult();
 		}
 
 		public void PostAsJson(string requestUri) => PostAsJson(requestUri, (String)null);
@@ -98,7 +101,9 @@ namespace TestProject
 			if (body is IEntityWithETag eTag && !string.IsNullOrEmpty(eTag._ETag))
 				req.Headers.Add("If-Match", $"\"{eTag._ETag}\"");
 
-			LastResponse = req.PostJsonAsync(body).GetAwaiter().GetResult();
+			_lastResponse = req.PostJsonAsync(body);
+
+			_lastResponse.GetAwaiter().GetResult();
 		}
 
 		public void PutAsJson(string requestUri) => PutAsJson(requestUri, (String)null);
@@ -112,7 +117,9 @@ namespace TestProject
 			if (body is IEntityWithETag eTag && !string.IsNullOrEmpty(eTag._ETag))
 				req.WithHeader("If-Match", $"\"{eTag._ETag}\"");
 
-			LastResponse = req.PutJsonAsync(body).GetAwaiter().GetResult();
+			_lastResponse = req.PutJsonAsync(body);
+
+			_lastResponse.GetAwaiter().GetResult();
 		}
 
 		public void PatchAsJson(string requestUri) => PatchAsJson(requestUri, (String)null);
@@ -126,60 +133,59 @@ namespace TestProject
 			if (body is IEntityWithETag eTag && !string.IsNullOrEmpty(eTag._ETag))
 				req.WithHeader("If-Match", $"\"{eTag._ETag}\"");
 
-			LastResponse = req.PatchJsonAsync(body).GetAwaiter().GetResult();
+			_lastResponse = req.PatchJsonAsync(body);
+
+			_lastResponse.GetAwaiter().GetResult();
 		}
 
 		public T ReadAs<T>()
 		{
-			if (LastResponse == null)
+			if (_lastResponse == null)
 				throw new InvalidOperationException("I suggest to make a request first ...");
 
-			return LastResponse.GetJsonAsync<T>().GetAwaiter().GetResult();
+			return _lastResponse.ReceiveJson<T>().GetAwaiter().GetResult();
 		}
 
 		public string ReadAsString()
 		{
-			if (LastResponse == null)
+			if (_lastResponse == null)
 				throw new InvalidOperationException("I suggest to make a request first ...");
 
-			return LastResponse.GetStringAsync().GetAwaiter().GetResult();
+			return _lastResponse.ReceiveString().GetAwaiter().GetResult();
 		}
 
 		[When(@"I get url (.*)")]
 		public void WhenIGetUrl(string url)
 		{
 			var req = _client.Request(url);
-			LastResponse = req.GetAsync().GetAwaiter().GetResult();
+			_lastResponse = req.GetAsync();
+
+			_lastResponse.GetAwaiter().GetResult();
 		}
 
 		[Then("The request succeded")]
 		public void ThenTheRequestSucceded()
 		{
-			LastResponse.ResponseMessage.EnsureSuccessStatusCode();
+			_lastResponse.GetAwaiter().GetResult().EnsureSuccessStatusCode();
 		}
 
 		[Then(@"The request fails with (.*)")]
 		public void ThenTheRequestFailsWith(HttpStatusCode code)
 		{
-			Assert.AreEqual(code, LastResponse.StatusCode);
+			Assert.AreEqual(code, _lastResponse.GetAwaiter().GetResult().StatusCode);
 		}
 
 		[Then(@"The problem detail type contains (.*)")]
 		public void ThenTheProblemDetailTypeContains(string expectedProblemDetailType)
 		{
-			var problemDetail = LastResponse.GetJsonAsync<ProblemDetails>().GetAwaiter().GetResult();
+			var problemDetail = _lastResponse.ReceiveJson<ProblemDetails>().GetAwaiter().GetResult();
 			Assert.IsTrue(problemDetail.Type.Contains(expectedProblemDetailType));
 		}
 
 		[Then(@"The request returns (.*)")]
 		public void ThenTheRequestReturns(HttpStatusCode code)
 		{
-			Assert.AreEqual(code, LastResponse.StatusCode);
+			Assert.AreEqual(code, _lastResponse.GetAwaiter().GetResult().StatusCode);
 		}
-
-        public void Dispose()
-        {
-			LastResponse?.Dispose();
-        }
-    }
+	}
 }

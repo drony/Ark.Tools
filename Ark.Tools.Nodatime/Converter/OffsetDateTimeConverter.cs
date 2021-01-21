@@ -46,7 +46,7 @@ namespace Ark.Tools.Nodatime
 
 		public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType)
 		{
-			if (destinationType == typeof(string) || destinationType == typeof(DateTimeOffset))
+			if (destinationType == typeof(string) || destinationType == typeof(DateTime))
 				return true;
 
 			return base.CanConvertTo(context, destinationType);

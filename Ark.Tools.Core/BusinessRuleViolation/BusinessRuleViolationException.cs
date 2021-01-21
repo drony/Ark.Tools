@@ -1,29 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.Serialization;
 using System.Text;
 
 namespace Ark.Tools.Core.BusinessRuleViolation
 {
-    [Serializable]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "RCS1194:Implement exception constructors.", Justification = "Created from BusinessRuleViolation")]
-    public sealed class BusinessRuleViolationException : Exception
+    public class BusinessRuleViolationException : Exception
     {
-        public BusinessRuleViolationException(BusinessRuleViolation br) : base(br.Detail)
+        public BusinessRuleViolationException(BusinessRuleViolation br): base(br.Title)
         {
-            Data.Add("BusinessRuleViolation", br);
+            BusinessRuleViolation = br;
         }
 
-        public BusinessRuleViolationException(BusinessRuleViolation br, Exception innerException) : base(br.Detail, innerException)
-        {
-        }
+        public BusinessRuleViolation BusinessRuleViolation { get; set; }
 
-        public BusinessRuleViolation BusinessRuleViolation
-        {
-            get => Data.Contains("BusinessRuleViolation") ? Data["BusinessRuleViolation"] as BusinessRuleViolation : null;
-        }
 
+        public override string ToString()
+        {
+            var stringBuilder = new StringBuilder();
+
+            stringBuilder.AppendLine($"Title   : {BusinessRuleViolation.Title}");
+            stringBuilder.AppendLine($"Details : {BusinessRuleViolation.Detail}");
+            stringBuilder.AppendLine($"Status  : {BusinessRuleViolation.Status}");
+
+            return stringBuilder.ToString();
+        }
     }
-
-
 }

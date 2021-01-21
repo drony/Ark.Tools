@@ -51,7 +51,9 @@ namespace Ark.Tools.AspNetCore.Startup
             {                    
             });
             services.Configure<SnapshotCollectorConfiguration>(Configuration.GetSection(nameof(SnapshotCollectorConfiguration)));
-            services.AddSnapshotCollector();
+                
+
+            services.AddSingleton<ITelemetryProcessorFactory, SnapshotCollectorTelemetryProcessorFactory>();            
 
             services.AddCors();            
         }
@@ -88,7 +90,7 @@ namespace Ark.Tools.AspNetCore.Startup
             });
             
             app.UseSecurityHeaders();
-            app.UseHsts();
+            app.UseHttpsRedirection();
 
             app.UseStaticFiles();
 

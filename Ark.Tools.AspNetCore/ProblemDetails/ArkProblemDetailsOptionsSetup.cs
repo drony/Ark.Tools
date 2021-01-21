@@ -1,5 +1,5 @@
 ﻿using System;
-using Microsoft.Data.SqlClient;
+using System.Data.SqlClient;
 using System.Net.Http;
 using Ark.Tools.Core;
 using Ark.Tools.Core.EntityTag;

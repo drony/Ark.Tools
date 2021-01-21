@@ -3,58 +3,66 @@
 using System;
 using System.Data;
 using System.Data.Common;
-using System.Threading.Tasks;
 
 namespace Ark.Tools.Sql
 {
     public abstract class AbstractSqlContext<Tag> : ISqlContext<Tag>
     {
-        private DbConnection _connection;
+        private readonly DbConnection _connection;
         private DbTransaction _transaction;
         private bool _disposed = false;
         private IsolationLevel _isolationLevel;
-
         protected AbstractSqlContext(DbConnection connection, IsolationLevel isolationLevel = IsolationLevel.ReadCommitted)
         {
-            _connection = connection ?? throw new ArgumentNullException(nameof(connection));
+            if (connection == null)
+                throw new ArgumentNullException("connection");
+
+            _connection = connection;
             _isolationLevel = isolationLevel;
+            _opened = _connection.State != ConnectionState.Closed;
         }
 
-        protected AbstractSqlContext(DbTransaction transaction)
-        {
-            _transaction = transaction ?? throw new ArgumentNullException(nameof(transaction));
-            _connection = transaction.Connection;
-            _isolationLevel = _transaction.IsolationLevel;
-        }
-
+        private volatile bool _opened = false;
         private void _ensureOpened()
         {
             // we consider this double check "safe" given if someone tries to get a CONNECTION during a COMMIT ... well he should be kicked
             // this is an helper class and this is just to ensure there is always a transaction active when using the Connection
             // and to restart the Transaction automatically after a commit ONLY if Connection is reused
 
-            lock (_connection)
+            if (!_opened)
             {
-                if (_connection.State != ConnectionState.Open)
+                lock (_connection)
                 {
-                    if (_connection.State == ConnectionState.Closed)
-                        _connection.Open();
+                    if (!_opened)
+                    {
+                        if (_connection.State == ConnectionState.Closed)
+                            _connection.Open();
+                        _transaction = _connection.BeginTransaction(_isolationLevel);
+                    }
+                    _opened = true;
                 }
-                if (_transaction == null)
-                    _transaction = _connection.BeginTransaction(_isolationLevel);
+            }
+
+            if (_transaction == null)
+            {
+                lock (_connection)
+                {
+                    if (_transaction == null)
+                        _transaction = _connection.BeginTransaction(_isolationLevel);
+                }
             }
         }
 
-        public DbConnection Connection
+        public IDbConnection Connection
         {
             get
             {
                 _ensureOpened();
-                return _transaction.Connection;
+                return _connection;
             }
         }
 
-        public DbTransaction Transaction
+        public IDbTransaction Transaction
         {
             get
             {
@@ -63,7 +71,7 @@ namespace Ark.Tools.Sql
             }
         }
 
-        public virtual void Commit()
+        public void Commit()
         {
             lock (_connection)
             {
@@ -73,7 +81,7 @@ namespace Ark.Tools.Sql
             }
         }
 
-        public virtual void Rollback()
+        public void Rollback()
         {
             lock (_connection)
             {
@@ -83,10 +91,15 @@ namespace Ark.Tools.Sql
             }
         }
 
-        public virtual void ChangeIsolationLevel(IsolationLevel isolationLevel)
+        public void ChangeIsolationLevel(IsolationLevel isolationLevel)
         {
             _isolationLevel = isolationLevel;
             Rollback();
+        }
+
+        ~AbstractSqlContext()
+        {
+            Dispose(false);
         }
 
         public void Dispose()

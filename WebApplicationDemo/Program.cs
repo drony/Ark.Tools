@@ -29,10 +29,6 @@ namespace WebApplicationDemo
 		public static IHostBuilder Config(this IHostBuilder builder, string[] args)
 		{
 			return builder
-				.ConfigureServices(s =>
-				{
-					s.AddSingleton<IExternalInjected, ExternalInjected>();
-				})
 				//.UseContentRoot(Directory.GetCurrentDirectory())
 				.ConfigureWebHostDefaults(webBuilder =>
 				{
@@ -136,11 +132,4 @@ namespace WebApplicationDemo
 		//			webBuilder.UseStartup<Startup>();
 		//		});
 	}
-
-	public interface IExternalInjected
-    {
-
-    }
-
-	public class ExternalInjected : IExternalInjected { }
 }

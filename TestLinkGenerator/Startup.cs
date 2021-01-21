@@ -22,8 +22,8 @@ namespace TestWithoutArkTools
 {
 	public class Startup : ArkStartupWebApi
 	{
-		public Startup(IConfiguration configuration, IHostEnvironment env)
-			: base(configuration, env)
+		public Startup(IConfiguration configuration)
+			: base(configuration)
 		{
 		}
 
@@ -103,9 +103,9 @@ namespace TestWithoutArkTools
 
 		}
 
-		protected override void RegisterContainer(IServiceProvider services)
+		protected override void RegisterContainer(IApplicationBuilder app)
 		{
-			base.RegisterContainer(services);
+			base.RegisterContainer(app);
 
 			var cfg = new ApiConfig()
 			{
@@ -113,6 +113,8 @@ namespace TestWithoutArkTools
 
 			var apiHost = new ApiHost(cfg)
 				.WithContainer(Container);
+
+			var env = app.ApplicationServices.GetService<IWebHostEnvironment>();
 		}
 	}
 }

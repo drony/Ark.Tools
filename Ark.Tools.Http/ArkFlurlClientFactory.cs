@@ -6,7 +6,7 @@ using Flurl.Http.Configuration;
 
 namespace Ark.Tools.Http
 {
-    public class ArkFlurlClientFactory : DefaultFlurlClientFactory
+    public class ArkFlurlClientFactory : PerHostFlurlClientFactory
     {
         public static ArkFlurlClientFactory Instance { get; } = new ArkFlurlClientFactory();
 

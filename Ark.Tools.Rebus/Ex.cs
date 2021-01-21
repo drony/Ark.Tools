@@ -70,7 +70,6 @@ namespace Ark.Tools.Rebus
             });
         }
 
-        [Obsolete("Use UseDrainableInMemoryTransport", true)]
         public static void UseTestsInMemoryTransport(this StandardConfigurer<ITransport> configurer, InMemNetwork network, string inputQueueName)
         {
             if (configurer == null) throw new ArgumentNullException(nameof(configurer));
@@ -86,7 +85,6 @@ namespace Ark.Tools.Rebus
             configurer.Register(context => context.Get<TestsInMemTransport>());
         }
 
-        [Obsolete("Use UseDrainableInMemoryTransportAsOneWay", true)]
         public static void UseTestsInMemoryTransportAsOneWayClient(this StandardConfigurer<ITransport> configurer, InMemNetwork network)
         {
             if (configurer == null) throw new ArgumentNullException(nameof(configurer));
